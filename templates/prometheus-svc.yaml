@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "fullname" . }}
+  labels:
+    app: {{ template "fullname" . }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+    component: core
+  annotations:
+    prometheus.io/scrape: 'true'
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.prometheus.service.externalHttpPort }}
+      targetPort: {{ .Values.prometheus.service.internalHttpPort }}
+      protocol: TCP
+  selector:
+    app: {{ template "fullname" . }}
+    component: core

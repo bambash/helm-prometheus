@@ -1,0 +1,14 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: "{{ template "fullname" . }}-{{ .Values.prometheus.volumes.pv.data.name }}"
+  labels:
+    type: amazonEBS
+  annotations:
+    volume.beta.kubernetes.io/storage-class: "{{ template "fullname" . }}-ssd"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi

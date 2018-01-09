@@ -1,0 +1,80 @@
+apiVersion: v1
+data:
+  cpu-usage.rules: |
+    ALERT NodeCPUUsage
+      IF (100 - (avg by (instance) (irate(node_cpu{name="node-exporter",mode="idle"}[5m])) * 100)) > 75
+      FOR 2m
+      LABELS {
+        severity="page"
+      }
+      ANNOTATIONS {
+        SUMMARY = "{{ `{{$labels.instance}}` }}: High CPU usage detected",
+        DESCRIPTION = "{{ `{{$labels.instance}}` }}: CPU usage is above 75% (current value is: {{ `{{$value}}` }})"
+      }
+  load-average.rules: |
+    ALERT NodeLoadAverage
+      IF ((node_load5 / count without (cpu, mode) (node_cpu{mode="system"})) > 2)
+      FOR 2m
+      LABELS {
+        severity="page"
+      }
+      ANNOTATIONS {
+        SUMMARY = "{{ `{{$labels.instance}}` }}: High LA detected",
+        DESCRIPTION = "{{ `{{$labels.instance}}` }}: LA is high - {{ `{{$value}}` }}"
+      }
+  low-disk-space.rules: |
+    ALERT NodeLowRootDisk
+      IF ((node_filesystem_size{mountpoint="/root-disk"} - node_filesystem_free{mountpoint="/root-disk"} ) / node_filesystem_size{mountpoint="/root-disk"} * 100) > 75
+      FOR 2m
+      LABELS {
+        severity="page"
+      }
+      ANNOTATIONS {
+        SUMMARY = "{{ `{{$labels.instance}}` }}: Low root disk space",
+        DESCRIPTION = "{{ `{{$labels.instance}}` }}: Root disk usage is above 75% (current value is: {{ `{{$value}}` }})"
+      }
+
+    ALERT NodeLowDataDisk
+      IF ((node_filesystem_size{mountpoint="/data-disk"} - node_filesystem_free{mountpoint="/data-disk"} ) / node_filesystem_size{mountpoint="/data-disk"} * 100) > 75
+      FOR 2m
+      LABELS {
+        severity="page"
+      }
+      ANNOTATIONS {
+        SUMMARY = "{{ `{{$labels.instance}}` }}: Low data disk space",
+        DESCRIPTION = "{{ `{{$labels.instance}}` }}: Data disk usage is above 75% (current value is: {{ `{{$value}}` }})"
+      }
+
+    ALERT DiskWillFillIn24Hours
+      IF predict_linear(node_filesystem_free{fstype=~'ext4|xfs|btrfs'}[1h], 24*3600) < 0
+      FOR 1h
+      LABELS { severity = "critical" }
+      ANNOTATIONS {
+        summary = "{{ `{{$labels.instance}}` }} - {{ `{{$labels.mountpoint}}` }} disk space",
+        description = "{{ `{{$labels.instance}}` }} - {{ `{{$labels.mountpoint}}` }} is predicted to fill completely within 24 hours.{{ `{{ humanize $value }}` }}",
+      }
+  mem-usage.rules: |
+    ALERT NodeSwapUsage
+      IF (((node_memory_SwapTotal-node_memory_SwapFree)/node_memory_SwapTotal)*100) > 75
+      FOR 2m
+      LABELS {
+        severity="page"
+      }
+      ANNOTATIONS {
+        SUMMARY = "{{ `{{$labels.instance}}` }}: Swap usage detected",
+        DESCRIPTION = "{{ `{{$labels.instance}}` }}: Swap usage usage is above 75% (current value is: {{ `{{$value}}` }})"
+      }
+
+    ALERT NodeMemoryUsage
+      IF (((node_memory_MemTotal-node_memory_MemFree-node_memory_Cached)/(node_memory_MemTotal)*100)) > 75
+      FOR 2m
+      LABELS {
+        severity="page"
+      }
+      ANNOTATIONS {
+        SUMMARY = "{{ `{{$labels.instance}}` }}: High memory usage detected",
+        DESCRIPTION = "{{ `{{$labels.instance}}` }}: Memory usage is above 75% (current value is: {{ `{{$value}}` }})"
+      }
+kind: ConfigMap
+metadata:
+  name: "{{ template "fullname" . }}-prometheus-rules"

@@ -1,0 +1,52 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "fullname" . }}
+  namespace: monitoring
+  labels:
+    app: {{ template "fullname" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+    component: core
+spec:
+  replicas: {{ .Values.prometheus.replicaCount }}
+  template:
+    metadata:
+      name: {{ template "fullname" . }}-main
+      labels:
+        app: {{ template "fullname" . }}
+        release: {{ .Release.Name }}
+        component: core
+    spec:
+      securityContext:
+        fsGroup: 1234
+      serviceAccountName: {{ template "fullname" . }}
+      containers:
+      - name: prometheus
+        image: "{{ .Values.prometheus.image.repository }}:{{ .Values.prometheus.image.tag }}"
+        imagePullPolicy: "{{ .Values.prometheus.image.pullPolicy }}"
+        args:
+{{ toYaml .Values.prometheus.args | indent 12 }}
+        ports:
+        - name: prometheus
+          containerPort: {{ .Values.prometheus.service.internalHttpPort }}
+        resources:
+{{ toYaml .Values.resources | indent 12 }}
+        volumeMounts:
+        - name: "{{ template "fullname" . }}-{{ .Values.prometheus.volumes.configMap.config.name }}"
+          mountPath: {{ .Values.prometheus.volumes.configMap.config.mountPath }}
+        - name: "{{ template "fullname" . }}-{{ .Values.prometheus.volumes.configMap.rules.name }}"
+          mountPath: {{ .Values.prometheus.volumes.configMap.rules.mountPath }}
+        - name: "{{ template "fullname" . }}-{{ .Values.prometheus.volumes.pv.data.name }}"
+          mountPath: {{ .Values.prometheus.volumes.pv.data.mountPath }}
+      volumes:
+      - name: "{{ template "fullname" . }}-{{ .Values.prometheus.volumes.configMap.config.name }}"
+        configMap:
+          name: "{{ template "fullname" . }}-{{ .Values.prometheus.volumes.configMap.config.name }}"
+      - name: "{{ template "fullname" . }}-{{ .Values.prometheus.volumes.configMap.rules.name }}"
+        configMap:
+          name: "{{ template "fullname" . }}-{{ .Values.prometheus.volumes.configMap.rules.name }}"
+      - name: "{{ template "fullname" . }}-{{ .Values.prometheus.volumes.pv.data.name }}"
+        persistentVolumeClaim:
+          claimName: {{ template "fullname" . }}-{{ .Values.prometheus.volumes.pv.data.name }}

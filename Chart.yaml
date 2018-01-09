@@ -1,0 +1,14 @@
+name: prometheus
+description: Prometheus Monitoring Stack
+version: 0.1.0
+keywords:
+  - monitoring
+  - prometheus
+  - node_exporter
+home: "https://prometheus.io/"
+icon: "https://prometheus.io/assets/prometheus_logo_grey.svg"
+sources:
+  - "https://prometheus.io/"
+maintainers:
+  - name: bambash
+    email: bambash256@gmail.com
